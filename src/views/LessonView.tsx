@@ -31,29 +31,30 @@ export function LessonView({ id }: { id: string }) {
     );
   }
 
-  const discipline = carnet.disciplines.find((item) => item.id === lesson.disciplineId);
-  const students = studentsFor(carnet, lesson.disciplineId);
+  const session = lesson;
+  const discipline = carnet.disciplines.find((item) => item.id === session.disciplineId);
+  const students = studentsFor(carnet, session.disciplineId);
 
   function patch(partial: Partial<Lesson>) {
     update((current) => ({
       ...current,
-      lessons: current.lessons.map((item) => (item.id === lesson.id ? { ...item, ...partial } : item)),
+      lessons: current.lessons.map((item) => (item.id === session.id ? { ...item, ...partial } : item)),
     }));
   }
 
   function patchLive(fn: (item: Lesson) => Lesson) {
     update((current) => ({
       ...current,
-      lessons: current.lessons.map((item) => (item.id === lesson.id ? fn(item) : item)),
+      lessons: current.lessons.map((item) => (item.id === session.id ? fn(item) : item)),
     }));
   }
 
   function addCatalog(catalogId: string) {
     const figure = discipline?.figures.find((item) => item.id === catalogId);
-    if (!figure || lesson.figures.some((item) => item.catalogId === figure.id)) return;
+    if (!figure || session.figures.some((item) => item.catalogId === figure.id)) return;
     patch({
       figures: [
-        ...lesson.figures,
+        ...session.figures,
         { id: uid(), catalogId: figure.id, name: figure.name, group: figure.group, hint: figure.hint, level: "vu" },
       ],
     });
@@ -64,7 +65,7 @@ export function LessonView({ id }: { id: string }) {
     const name = figureName.trim();
     if (!name) return;
     patch({
-      figures: [...lesson.figures, { id: uid(), name, group: "Figures", hint: "", level: "vu" }],
+      figures: [...session.figures, { id: uid(), name, group: "Figures", hint: "", level: "vu" }],
     });
     setFigureName("");
   }
@@ -74,7 +75,7 @@ export function LessonView({ id }: { id: string }) {
     const url = cleanUrl(linkUrl);
     if (!url) return;
     patch({
-      links: [...lesson.links, { id: uid(), label: linkLabel.trim() || url, url }],
+      links: [...session.links, { id: uid(), label: linkLabel.trim() || url, url }],
     });
     setLinkLabel("");
     setLinkUrl("");
@@ -82,8 +83,8 @@ export function LessonView({ id }: { id: string }) {
 
   function remove() {
     if (!window.confirm("Retirer cette séance du carnet ?")) return;
-    update((current) => ({ ...current, lessons: current.lessons.filter((item) => item.id !== lesson.id) }));
-    location.hash = `#/semaine/${lesson.date}`;
+    update((current) => ({ ...current, lessons: current.lessons.filter((item) => item.id !== session.id) }));
+    location.hash = `#/semaine/${session.date}`;
   }
 
   const grouped = new Map<string, NonNullable<typeof discipline>["figures"]>();
@@ -95,22 +96,22 @@ export function LessonView({ id }: { id: string }) {
 
   return (
     <div className="page">
-      <a className="textish back" href={`#/semaine/${lesson.date}`}>
+      <a className="textish back" href={`#/semaine/${session.date}`}>
         Semaine
       </a>
       <header className="page-head lesson-hero">
-        <Picture scene={sceneForGroup(lesson.figures[0]?.group ?? "Figures")} size={84} />
+        <Picture scene={sceneForGroup(session.figures[0]?.group ?? "Figures")} size={84} />
         <div>
-          <p className="kicker">{formatDay(lesson.date)}</p>
+          <p className="kicker">{formatDay(session.date)}</p>
           <input
             className="title-input"
             aria-label="Titre de la séance"
-            value={lesson.title}
+            value={session.title}
             onChange={(event) => patch({ title: event.target.value })}
           />
           <label className="field slim">
             <span>Discipline</span>
-            <select value={lesson.disciplineId} onChange={(event) => patch({ disciplineId: event.target.value })}>
+            <select value={session.disciplineId} onChange={(event) => patch({ disciplineId: event.target.value })}>
               {carnet.disciplines.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
@@ -126,9 +127,9 @@ export function LessonView({ id }: { id: string }) {
           <section className="panel">
             <p className="kicker">Pas et figures</p>
             <h2>Ce qui est travaillé</h2>
-            {lesson.figures.length === 0 && <p className="muted">Choisis une figure du catalogue, ou ajoute la tienne.</p>}
+            {session.figures.length === 0 && <p className="muted">Choisis une figure du catalogue, ou ajoute la tienne.</p>}
             <ul className="figure-list">
-              {lesson.figures.map((figure) => (
+              {session.figures.map((figure) => (
                 <li key={figure.id}>
                   <Picture scene={sceneForGroup(figure.group)} size={48} />
                   <div>
@@ -169,7 +170,7 @@ export function LessonView({ id }: { id: string }) {
                 <p>{group}</p>
                 <div className="pills">
                   {figures.map((figure) => {
-                    const on = lesson.figures.some((item) => item.catalogId === figure.id);
+                    const on = session.figures.some((item) => item.catalogId === figure.id);
                     return (
                       <button key={figure.id} type="button" className={on ? "pill on" : "pill"} onClick={() => addCatalog(figure.id)}>
                         {figure.name}
@@ -192,7 +193,7 @@ export function LessonView({ id }: { id: string }) {
               <span>Ce qui a été appris</span>
               <textarea
                 rows={4}
-                value={lesson.learned}
+                value={session.learned}
                 placeholder="Le groupe tient le pas de base. Le frein en T arrive encore tard."
                 onChange={(event) => patch({ learned: event.target.value })}
               />
@@ -201,7 +202,7 @@ export function LessonView({ id }: { id: string }) {
               <span>Devoir</span>
               <textarea
                 rows={3}
-                value={lesson.homework}
+                value={session.homework}
                 placeholder="Dix minutes de roulage, puis le croisé devant sur huit temps."
                 onChange={(event) => patch({ homework: event.target.value })}
               />
@@ -210,7 +211,7 @@ export function LessonView({ id }: { id: string }) {
               <span>Appréciation du cours</span>
               <textarea
                 rows={3}
-                value={lesson.appreciation}
+                value={session.appreciation}
                 placeholder="Séance claire. Garder le même tempo la prochaine fois."
                 onChange={(event) => patch({ appreciation: event.target.value })}
               />
@@ -221,7 +222,7 @@ export function LessonView({ id }: { id: string }) {
             <p className="kicker">Liens</p>
             <h2>Morceau, vidéo, fiche</h2>
             <ul className="link-list">
-              {lesson.links.map((link) => (
+              {session.links.map((link) => (
                 <li key={link.id}>
                   <Picture scene="book" size={42} />
                   <a href={link.url} target="_blank" rel="noopener noreferrer">
@@ -264,8 +265,8 @@ export function LessonView({ id }: { id: string }) {
           )}
           <ul className="people">
             {students.map((student) => {
-              const theirs = lesson.classRatings.find((item) => item.studentId === student.id);
-              const mine = lesson.studentRatings.find((item) => item.studentId === student.id);
+              const theirs = session.classRatings.find((item) => item.studentId === student.id);
+              const mine = session.studentRatings.find((item) => item.studentId === student.id);
               return (
                 <li key={student.id}>
                   <b>{student.name}</b>
